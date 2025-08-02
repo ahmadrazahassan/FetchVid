@@ -44,8 +44,25 @@ interface DownloadRequest {
 // API functions
 const API_BASE_URL = import.meta.env.VITE_API_URL || ''
 
+// Debug: Log the API URL in development
+if (import.meta.env.DEV) {
+  console.log('🔧 API_BASE_URL:', API_BASE_URL)
+  console.log('🔧 Full API endpoints:')
+  console.log('  - Info:', `${API_BASE_URL}/api/video/info`)
+  console.log('  - Download:', `${API_BASE_URL}/api/video/download`)
+}
+
 const getVideoInfo = async (url: string): Promise<VideoInfo> => {
-  const response = await fetch(`${API_BASE_URL}/api/video/info`, {
+  const apiUrl = `${API_BASE_URL}/api/video/info`
+  
+  // Debug logging
+  console.log('🚀 Making API request to:', apiUrl)
+  
+  if (!API_BASE_URL) {
+    throw new Error('Backend URL not configured. Please check VITE_API_URL environment variable.')
+  }
+  
+  const response = await fetch(apiUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -53,8 +70,11 @@ const getVideoInfo = async (url: string): Promise<VideoInfo> => {
     body: JSON.stringify({ url }),
   })
   
+  console.log('📡 API Response status:', response.status)
+  console.log('📡 API Response URL:', response.url)
+  
   if (!response.ok) {
-    const error = await response.json()
+    const error = await response.json().catch(() => ({ detail: `HTTP ${response.status} ${response.statusText}` }))
     throw new Error(error.detail || 'Failed to get video info')
   }
   
