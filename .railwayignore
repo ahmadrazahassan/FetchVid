@@ -1,0 +1,12 @@
+# Ignore frontend files when deploying to Railway
+src/
+public/
+node_modules/
+package.json
+package-lock.json
+vite.config.ts
+tsconfig.json
+tsconfig.node.json
+tailwind.config.js
+postcss.config.js
+index.html
