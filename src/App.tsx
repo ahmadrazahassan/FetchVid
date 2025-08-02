@@ -1,3 +1,4 @@
+// FrameFetch App - No React import needed for modern React
 import Header from './components/Header'
 import Hero from './components/Hero'
 import VideoDownloader from './components/VideoDownloader'
