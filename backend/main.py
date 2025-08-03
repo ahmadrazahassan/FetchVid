@@ -111,16 +111,16 @@ def get_ydl_opts(quality: str = "720p", format_type: str = "video") -> dict:
             'no_warnings': False,
         }
     
-    # Direct and reliable video format selection
+    # Direct and reliable video format selection - prioritize single file formats
     quality_map = {
-        "144p": "worst[height<=144][ext=mp4]/worst[height<=240][ext=mp4]/worst",
-        "360p": "best[height=360][ext=mp4]/best[height<=360][ext=mp4]/best[height=360]",
-        "480p": "best[height=480][ext=mp4]/best[height<=480][ext=mp4]/best[height=480]", 
-        "720p": "best[height=720][ext=mp4]/best[height<=720][ext=mp4]/best[height=720]",
-        "1080p": "best[height=1080][ext=mp4]/best[height<=1080][ext=mp4]/best[height=1080]",
-        "1440p": "best[height=1440][ext=mp4]/best[height<=1440][ext=mp4]/best[height=1440]",
-        "2160p": "best[height=2160][ext=mp4]/best[height<=2160][ext=mp4]/best[height=2160]",
-        "best": "best[ext=mp4]/best"
+        "144p": "best[height<=144][ext=mp4][acodec!=none]/best[height<=240][ext=mp4]/worst",
+        "360p": "best[height=360][ext=mp4][acodec!=none]/best[height<=360][ext=mp4]/best[height=360]",
+        "480p": "best[height=480][ext=mp4][acodec!=none]/best[height<=480][ext=mp4]/best[height=480]", 
+        "720p": "best[height=720][ext=mp4][acodec!=none]/best[height<=720][ext=mp4]/best[height=720]",
+        "1080p": "best[height=1080][ext=mp4][acodec!=none]/best[height<=1080][ext=mp4]/best[height=1080]",
+        "1440p": "best[height=1440][ext=mp4][acodec!=none]/best[height<=1440][ext=mp4]/best[height=1440]",
+        "2160p": "best[height=2160][ext=mp4][acodec!=none]/best[height<=2160][ext=mp4]/best[height=2160]",
+        "best": "best[ext=mp4][acodec!=none]/best[ext=mp4]/best"
     }
     
     format_selector = quality_map.get(quality, "best[height=720][ext=mp4]/best[height<=720]")
@@ -136,6 +136,9 @@ def get_ydl_opts(quality: str = "720p", format_type: str = "video") -> dict:
         'quiet': False,  # Enable logging to debug
         'no_warnings': False,
         'extract_flat': False,
+        # Prefer not to merge if ffmpeg is missing
+        'prefer_ffmpeg': False,
+        'no_post_overwrites': True,
     }
 
 @app.get("/")
@@ -334,33 +337,24 @@ async def download_video(request: DownloadRequest, background_tasks: BackgroundT
             selected_format_id = select_best_format(formats, request.quality, request.format_type)
             print(f"🎯 Selected format ID: {selected_format_id}")
         
-        # Now download with the specific format
+        # Now download with the specific format - avoid ffmpeg dependencies
         download_opts = {
             'format': selected_format_id,
             'outtmpl': tempfile.gettempdir() + f'/framefetch_{title[:50]}_{request.quality}.%(ext)s',
             'quiet': False,
             'no_warnings': False,
-            # Force MP4 output
-            'merge_output_format': 'mp4',
-            'postprocessors': [{
-                'key': 'FFmpegVideoConvertor',
-                'preferedformat': 'mp4',
-            }]
+            # Don't force format conversion to avoid ffmpeg requirement
+            'prefer_ffmpeg': False,
+            'no_post_overwrites': True,
         }
         
-        # Add audio extraction for audio downloads
+        # Add audio extraction for audio downloads - simplified approach
         if request.format_type == "audio":
+            # Use native audio formats when possible to avoid ffmpeg
             download_opts.update({
-                'extractaudio': True,
-                'audioformat': 'mp3',
-                'audioquality': '192',
+                'format': 'bestaudio[ext=m4a]/bestaudio[ext=mp3]/bestaudio/best[acodec!=none]',
+                'extractaudio': False,  # Don't extract, just download audio format directly
             })
-            # Remove video post-processor for audio downloads
-            download_opts['postprocessors'] = [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            }]
         
         # Custom hook to capture the downloaded filename
         def my_hook(d):
