@@ -1,8 +1,0 @@
-[build]
-apt.packages = ["ffmpeg"]
-
-[build.cmd]
-cmd = "pip install -r requirements.txt"
-
-[start]
-cmd = "uvicorn main:app --host 0.0.0.0 --port $PORT"
