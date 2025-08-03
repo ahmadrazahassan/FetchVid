@@ -27,18 +27,29 @@ load_dotenv()
 
 # Get environment variable for allowed origins
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
-allowed_origins = [
+
+# Development origins
+dev_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    FRONTEND_URL,
-    # Add common deployment URLs
-    "https://*.vercel.app",
-    "https://*.netlify.app",
 ]
 
-# In production, be more specific about origins
-if os.getenv("ENVIRONMENT") == "production":
-    allowed_origins = [FRONTEND_URL] if FRONTEND_URL != "http://localhost:3000" else allowed_origins
+# Production origins - Add your specific Vercel domain
+prod_origins = [
+    "https://fetch-vid.vercel.app",  # Your actual Vercel domain
+    "https://fetchvid.vercel.app",   # Alternative domain format
+]
+
+# Include environment variable domain if set
+if FRONTEND_URL and FRONTEND_URL not in dev_origins + prod_origins:
+    prod_origins.append(FRONTEND_URL)
+
+# Combine all origins
+allowed_origins = dev_origins + prod_origins
+
+print(f"🔧 CORS allowed origins: {allowed_origins}")
+print(f"🔧 Environment: {os.getenv('ENVIRONMENT', 'development')}")
+print(f"🔧 Frontend URL from env: {FRONTEND_URL}")
 
 app.add_middleware(
     CORSMiddleware,
